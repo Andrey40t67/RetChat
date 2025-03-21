@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Чат с поддержкой переписки</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .chat-wrapper {
+            width: 100%;
+            max-width: 500px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .chat-header {
+            padding: 15px;
+            background: #2c3e50;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-header h2 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .admin-btn {
+            background: #16a085;
+            color: white;
+            border: none;
+            padding: 5px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .chat-box {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            background: #f9f9f9;
+            border-top: 1px solid #eee;
+        }
+
+        .message {
+            margin: 10px 0;
+            padding: 12px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            line-height: 1.4;
+            word-wrap: break-word;
+            max-width: 75%;
+            display: inline-block;
+        }
+
+        .user {
+            background: #d1f5d3;
+            align-self: flex-end;
+            margin-left: auto;
+            text-align: right;
+        }
+
+        .admin {
+            background: #ecf0f1;
+            align-self: flex-start;
+            margin-right: auto;
+        }
+
+        .chat-input {
+            display: flex;
+            padding: 10px;
+            border-top: 1px solid #eee;
+        }
+
+        .chat-input input {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 20px;
+            font-size: 14px;
+            background-color: #f4f4f4;
+        }
+
+        .chat-input button {
+            margin-left: 10px;
+            background: #2ecc71;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+
+        .code-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            color: white;
+            display: none;
+        }
+
+        .code-overlay input {
+            padding: 10px;
+            border-radius: 8px;
+            border: none;
+            font-size: 16px;
+            margin-top: 10px;
+            width: 200px;
+        }
+
+        .code-overlay button {
+            margin-top: 10px;
+            padding: 8px 20px;
+            font-size: 14px;
+            border-radius: 8px;
+            border: none;
+            background: #2ecc71;
+            color: white;
+            cursor: pointer;
+        }
+
+        /* Админ панель */
+        .admin-panel {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: white;
+            padding: 20px;
+            display: none;
+            flex-direction: column;
+        }
+
+        .admin-panel h3 {
+            margin: 0 0 10px;
+        }
+
+        .admin-messages {
+            flex: 1;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 10px;
+            background: #fafafa;
+        }
+
+        .admin-input {
+            display: flex;
+        }
+
+        .admin-input input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 20px;
+        }
+
+        .admin-input button {
+            margin-left: 10px;
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<div class="chat-wrapper">
+  <div class="chat-header">
+    <h2>Чат</h2>
+    <button class="admin-btn" onclick="openCodePanel()">Админ-панель</button>
+  </div>
+
+  <div class="chat-box" id="chatBox"></div>
+
+  <div class="chat-input">
+    <input type="text" id="userInput" placeholder="Введите сообщение..." />
+    <button onclick="sendUserMessage()">Отправить</button>
+  </div>
+
+  <!-- Админ панель -->
+  <div class="admin-panel" id="adminPanel">
+    <h3>Админ-панель</h3>
+    <div class="admin-messages" id="adminMessages"></div>
+    <div class="admin-input">
+      <input type="text" id="adminInput" placeholder="Ваш ответ..." />
+      <button onclick="sendAdminMessage()">Ответить</button>
+    </div>
+  </div>
+
+  <!-- Ввод кода -->
+  <div class="code-overlay" id="codeOverlay">
+    <p>Введите код доступа</p>
+    <input type="text" id="codeInput" placeholder="Код" />
+    <button onclick="checkCode()">Войти</button>
+  </div>
+</div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.1.2/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.1.2/firebase-firestore.js"></script>
+
+<script>
+// Инициализация Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyA6InZS50Qh2k72kV98QuLZrmYiVKeJHqo",
+  authDomain: "alchat-1a0fc.firebaseapp.com",
+  projectId: "alchat-1a0fc",
+  storageBucket: "alchat-1a0fc.firebasestorage.app",
+  messagingSenderId: "411696282164",
+  appId: "1:411696282164:web:119ec7614a36c4ed14e861",
+  measurementId: "G-E9DK98DJGJ"
+};
+
+const app = firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore(app);
+
+// Получаем данные сообщений из Firestore
+function loadMessages() {
+  db.collection('messages').orderBy('timestamp').onSnapshot((querySnapshot) => {
+    chatBox.innerHTML = '';
+    adminMessages.innerHTML = '';
+    querySnapshot.forEach((doc) => {
+      const msg = doc.data();
+      addMessage(msg.text, msg.sender);
+    });
+  });
+}
+
+// Добавление сообщения в чат
+function addMessage(message, sender) {
+  const div = document.createElement('div');
+  div.className = `message ${sender}`;
+  div.textContent = message;
+
+  chatBox.appendChild(div);
+  adminMessages.appendChild(div);
+
+  chatBox.scrollTop = chatBox.scrollHeight;
+  adminMessages.scrollTop = adminMessages.scrollHeight;
+}
+
+// Отправка сообщения от пользователя
+function sendUserMessage() {
+  const userInput = document.getElementById('userInput');
+  const userMessage = userInput.value.trim();
+
+  if (userMessage) {
+    saveMessage(userMessage, 'user');
+    userInput.value = '';
+  }
+}
+
+// Отправка ответа от администратора
+function sendAdminMessage() {
+  const adminInput = document.getElementById('adminInput');
+  const adminMessage = adminInput.value.trim();
+
+  if (adminMessage) {
+    saveMessage(adminMessage, 'admin');
+    adminInput.value = '';
+  }
+}
+
+// Сохранение сообщения в Firestore
+function saveMessage(message, sender) {
+  db.collection('messages').add({
+    text: message,
+    sender: sender,
+    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+  });
+}
+
+// Открытие панели ввода кода
+function openCodePanel() {
+  document.getElementById('codeOverlay').style.display = 'flex';
+}
+
+// Проверка кода для админ-панели
+function checkCode() {
+  const code = document.getElementById('codeInput').value;
+  if (code === '2914') {
+    document.getElementById('codeOverlay').style.display = 'none';
+    document.getElementById('adminPanel').style.display = 'flex';
+    loadMessages();
+  } else {
+    alert('Неверный код!');
+  }
+}
+
+// Инициализация
+loadMessages();
+</script>
+
+</body>
+</html>
